@@ -439,8 +439,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const [year, month, day] = dateValue.split('-');
         const formattedDateForSheet = `${day}/${month}/${year}`; // Format: "DD/MM/YYYY"
 
+        // Membuat timestamp untuk WIB (UTC+7)
+        const now = new Date();
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000); // Waktu UTC dalam milidetik
+        const wibTime = new Date(utcTime + (3600000 * 7)); // Tambah 7 jam untuk WIB
+        
+        const dayWIB = String(wibTime.getDate()).padStart(2, '0');
+        const monthWIB = String(wibTime.getMonth() + 1).padStart(2, '0');
+        const yearWIB = wibTime.getFullYear();
+        const hoursWIB = String(wibTime.getHours()).padStart(2, '0');
+        const minutesWIB = String(wibTime.getMinutes()).padStart(2, '0');
+        const secondsWIB = String(wibTime.getSeconds()).padStart(2, '0');
+        const wibTimestamp = `${dayWIB}/${monthWIB}/${yearWIB} ${hoursWIB}:${minutesWIB}:${secondsWIB}`;
+
         const dataToSend = {
-            timestamp: new Date().toISOString(),
+            timestamp: wibTimestamp,
             teacherName: formTeacherNameInput.value,
             date: formattedDateForSheet,
             subject: mapelSelect.value,
@@ -535,14 +548,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
+                                const total = context.chart.data.datasets.flatMap(ds => ds.data).reduce((a, b) => a + b, 0);
+                                const value = context.parsed;
+                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                                
+                                // Label sudah termasuk jumlah, cth: "Hadir (18)"
                                 let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    label += context.parsed;
-                                }
-                                return label;
+                                
+                                return `${label}: ${percentage}`;
                             }
                         }
                     }
@@ -580,5 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
+
 
 
