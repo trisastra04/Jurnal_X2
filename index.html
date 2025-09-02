@@ -16,6 +16,9 @@
     <!-- Chart.js for statistics pie chart -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Chart.js Datalabels Plugin for showing percentages -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0"></script>
+
     <!-- Papa Parse for reading CSV login data -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
 
@@ -218,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
     
     const SUBJECTS = [
-        'PAI dan BP', 'PENDIDIKAN PANCASILA', 'BAHASA INDONESIA', 'BAHASA INGGRIS', 'MATEMATIKA', 'BIOLOGI',
+        'PAI dan BP', 'PENDIDIKAN PANCILA', 'BAHASA INDONESIA', 'BAHASA INGGRIS', 'MATEMATIKA', 'BIOLOGI',
         'FISIKA', 'KIMIA', 'GEOGRAFI', 'SEJARAH', 'SOSIOLOGI', 'EKONOMI', 'PJOK', 'SENI BUDAYA', 'INFORMATIKA'
     ];
 
@@ -254,6 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const togglePasswordBtn = document.getElementById('togglePassword');
     const eyeIcon = document.getElementById('eye-icon');
     const eyeSlashIcon = document.getElementById('eye-slash-icon');
+
+    // --- PLUGIN REGISTRATION ---
+    // Register the datalabels plugin globally for all charts
+    // The ChartDataLabels object is available globally from the plugin script.
+    Chart.register(ChartDataLabels);
 
     // --- APP STATE ---
     let teacherData = null;
@@ -546,17 +554,24 @@ document.addEventListener('DOMContentLoaded', () => {
                         position: 'top',
                     },
                     tooltip: {
+                        // Tooltip still shows the full label on hover
                         callbacks: {
                             label: function(context) {
-                                const total = context.chart.data.datasets.flatMap(ds => ds.data).reduce((a, b) => a + b, 0);
-                                const value = context.parsed;
-                                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                                
-                                // Label sudah termasuk jumlah, cth: "Hadir (18)"
-                                let label = context.label || '';
-                                
-                                return `${label}: ${percentage}`;
+                                return context.label;
                             }
+                        }
+                    },
+                    // Configuration for the datalabels plugin to show percentages
+                    datalabels: {
+                        formatter: (value, ctx) => {
+                            const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
+                            return percentage;
+                        },
+                        color: '#fff', // Color of the percentage text
+                        font: {
+                            weight: 'bold',
+                            family: "'Oswald', sans-serif" // Match the content font
                         }
                     }
                 }
@@ -593,7 +608,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
-
-
-
 
