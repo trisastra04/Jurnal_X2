@@ -167,7 +167,7 @@
                 <!-- Notes -->
                 <div>
                     <label for="catatan" class="block text-sm font-medium text-gray-700">Catatan</label>
-                    <textarea id="catatan" name="CATATAN" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm font-content" placeholder="Masukkan catatan kegiatan belajar mengajar..."></textarea>
+                    <textarea id="catatan" name="CATATAN" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm font-content p-3 placeholder-gray-400" placeholder="Masukkan catatan kegiatan belajar mengajar..."></textarea>
                 </div>
 
                 <!-- Submit Button -->
@@ -359,8 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Populate dropdowns
         mapelSelect.innerHTML = SUBJECTS.map(subject => `<option value="${subject}">${subject}</option>`).join('');
-        jamKeSelect.innerHTML = Array.from({length: 7}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
-        sampaiSelect.innerHTML = Array.from({length: 7}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+        jamKeSelect.innerHTML = Array.from({length: 8}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+        sampaiSelect.innerHTML = Array.from({length: 8}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
 
         // Set default mapel for teacher
         if (teacherData.mapel && SUBJECTS.includes(teacherData.mapel)) {
@@ -608,4 +608,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
+
 
