@@ -113,6 +113,13 @@
                     Logout
                 </button>
             </div>
+
+            <!-- Current Lesson Info -->
+            <div id="current-lesson-info" class="p-4 bg-slate-100 text-center border-b border-gray-200">
+                <p class="text-sm text-gray-600">Pelajaran Saat Ini:</p>
+                <p id="current-lesson-display" class="font-bold text-lg text-slate-800">-</p>
+                <p id="current-lesson-time" class="text-xs text-gray-500 font-content"></p>
+            </div>
             
             <!-- Form -->
             <form id="attendance-form" class="p-4 md:p-6 space-y-6">
@@ -210,9 +217,9 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURATION ---
-    // URL Web App Anda telah dimasukkan di sini
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpJzueiseDmknRWFPHM4bHHwYnA5-2dKDHR3uOY9dYEe-j9LkJgn_UDFWo8UyIXEzx-w/exec';
     const LOGIN_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwT9XaQAUcv9X810Lj-71wJkzZjkGS2NNfqqfp4_9Qbfd8fWuTvVadOnKCQ7ltb6iJ3ldPtMM2a95w/pub?gid=1351893586&single=true&output=csv';
+    const SCHEDULE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwT9XaQAUcv9X810Lj-71wJkzZjkGS2NNfqqfp4_9Qbfd8fWuTvVadOnKCQ7ltb6iJ3ldPtMM2a95w/pub?gid=1314010437&single=true&output=csv';
     
     const STUDENTS = [
         'ALFAHRIZI', 'ALHAN ZULFIKAR', 'ALIF ABIANSYAH', 'ALKA NOVALEN SYAH', 'ANDI ANJAS', 
@@ -266,10 +273,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- APP STATE ---
     let teacherData = null;
     let usersData = [];
+    let scheduleData = [];
+    let scheduleInterval = null;
     let attendanceChart = null;
 
     // --- FUNCTIONS ---
     const initApp = () => {
+        fetchSchedule(); // Fetch schedule on initial load
         const storedUser = sessionStorage.getItem('teacherData');
         if (storedUser) {
             teacherData = JSON.parse(storedUser);
@@ -299,6 +309,70 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+    
+    const fetchSchedule = () => {
+        Papa.parse(SCHEDULE_CSV_URL, {
+            download: true,
+            header: true, // Use the first row for headers
+            transformHeader: header => header.trim(), // Automatically trim whitespace from headers
+            complete: (results) => {
+                scheduleData = results.data;
+                updateCurrentLessonInfo(); // Update lesson info once data is fetched
+            },
+            error: (err) => {
+                console.error("Gagal mengambil data jadwal:", err);
+            }
+        });
+    };
+
+    /**
+     * Converts a time string (e.g., "07:30" or "7:30") to total minutes from midnight.
+     * @param {string} timeStr The time string to convert.
+     * @returns {number} The total number of minutes from midnight.
+     */
+    const timeToMinutes = (timeStr) => {
+        if (!timeStr || !timeStr.includes(':')) return 0;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return (hours * 60) + (minutes || 0);
+    };
+
+    const updateCurrentLessonInfo = () => {
+        if (scheduleData.length === 0) return;
+
+        const lessonDisplay = document.getElementById('current-lesson-display');
+        const lessonTimeDisplay = document.getElementById('current-lesson-time');
+        const dayMap = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        
+        const now = new Date();
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const wibTime = new Date(utcTime + (3600000 * 7));
+        
+        const dayName = dayMap[wibTime.getDay()];
+        const currentTimeInMinutes = timeToMinutes(`${wibTime.getHours()}:${wibTime.getMinutes()}`);
+
+        let currentLesson = 'Tidak Ada Jadwal Pelajaran';
+        let lessonTime = 'Saat ini di luar jam sekolah';
+
+        for (const row of scheduleData) {
+            const startTimeKey = 'Waktu Mulai';
+            const endTimeKey = 'Waktu Selesai';
+            const jamKeKey = 'Jam Ke Berapa';
+
+            if (row[startTimeKey] && row[endTimeKey] && row[dayName] !== undefined) {
+                const startMinutes = timeToMinutes(row[startTimeKey]);
+                const endMinutes = timeToMinutes(row[endTimeKey]);
+
+                 if (currentTimeInMinutes >= startMinutes && currentTimeInMinutes < endMinutes) {
+                    currentLesson = row[dayName].trim() || 'Istirahat';
+                    lessonTime = `Jam ke-${row[jamKeKey]} (${row[startTimeKey]} - ${row[endTimeKey]})`;
+                    break;
+                }
+            }
+        }
+
+        lessonDisplay.textContent = currentLesson;
+        lessonTimeDisplay.textContent = lessonTime;
+    };
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -317,6 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleLogout = () => {
         teacherData = null;
         sessionStorage.removeItem('teacherData');
+        if (scheduleInterval) clearInterval(scheduleInterval); // Stop interval on logout
         showLogin();
     };
 
@@ -331,6 +406,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loginSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         populateForm();
+        updateCurrentLessonInfo(); // Initial update
+        if (scheduleInterval) clearInterval(scheduleInterval); // Clear any existing interval
+        scheduleInterval = setInterval(updateCurrentLessonInfo, 60000); // Update every minute
     };
 
     const populateForm = () => {
