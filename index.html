@@ -100,7 +100,7 @@
     </div>
 
     <!-- Main App Section -->
-    <div id="app-section" class="hidden w-full max-w-4xl mx-auto p-4 md:p-6">
+    <div id="app-section" class="hidden w-full max-w-5xl mx-auto p-4 md:p-6">
         <div class="bg-white rounded-xl shadow-lg">
             <!-- Header -->
             <div class="flex justify-between items-center p-4 border-b border-gray-200">
@@ -152,12 +152,13 @@
                         <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-p mr-1.5"></span>P: Pulang</div>
                     </div>
                     <!-- Header for the student list -->
-                    <div class="hidden sm:flex items-center justify-between px-3 py-2 bg-slate-200 rounded-md text-sm font-semibold text-gray-600">
+                    <div class="hidden sm:flex items-center justify-between px-3 py-2 bg-slate-200 rounded-md text-sm font-semibold text-gray-600 space-x-4">
                         <div class="flex items-center flex-1">
                             <span class="w-8">No.</span>
                             <span>Nama Siswa</span>
                         </div>
-                        <div class="w-48 text-center">Status Kehadiran</div>
+                        <div class="w-48 text-center shrink-0">Status Kehadiran</div>
+                        <div class="w-56 text-left shrink-0">Catatan Siswa</div>
                     </div>
                     <div id="student-list" class="space-y-2">
                         <!-- Student rows will be dynamically inserted here -->
@@ -166,8 +167,8 @@
                 
                 <!-- Notes -->
                 <div>
-                    <label for="catatan" class="block text-sm font-medium text-gray-700">Catatan</label>
-                    <textarea id="catatan" name="CATATAN" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm font-content p-3 placeholder-gray-400" placeholder="Masukkan catatan kegiatan belajar mengajar..."></textarea>
+                    <label for="catatan" class="block text-sm font-medium text-gray-700">Catatan Kelas (Umum)</label>
+                    <textarea id="catatan" name="CATATAN" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm font-content p-3 placeholder-gray-400" placeholder="Masukkan catatan umum kegiatan belajar mengajar..."></textarea>
                 </div>
 
                 <!-- Submit Button -->
@@ -209,7 +210,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURATION ---
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiuPsV8hwIb5Z10D1Usg3aJdcZKpVzkoVDzglP9SDfv5fdAQoK2Kvxc4lv8re4wEOhyA/exec';
+    // URL Web App Anda telah dimasukkan di sini
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxpJzueiseDmknRWFPHM4bHHwYnA5-2dKDHR3uOY9dYEe-j9LkJgn_UDFWo8UyIXEzx-w/exec';
     const LOGIN_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwT9XaQAUcv9X810Lj-71wJkzZjkGS2NNfqqfp4_9Qbfd8fWuTvVadOnKCQ7ltb6iJ3ldPtMM2a95w/pub?gid=1351893586&single=true&output=csv';
     
     const STUDENTS = [
@@ -259,8 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const eyeSlashIcon = document.getElementById('eye-slash-icon');
 
     // --- PLUGIN REGISTRATION ---
-    // Register the datalabels plugin globally for all charts
-    // The ChartDataLabels object is available globally from the plugin script.
     Chart.register(ChartDataLabels);
 
     // --- APP STATE ---
@@ -269,10 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let attendanceChart = null;
 
     // --- FUNCTIONS ---
-    
-    // Initialize the application
     const initApp = () => {
-        // Check session storage for logged in user
         const storedUser = sessionStorage.getItem('teacherData');
         if (storedUser) {
             teacherData = JSON.parse(storedUser);
@@ -283,7 +280,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Fetch user credentials from CSV
     const fetchUsers = () => {
         Papa.parse(LOGIN_CSV_URL, {
             download: true,
@@ -304,14 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    // Handle login
     const handleLogin = (e) => {
         e.preventDefault();
         const username = loginForm.username.value;
         const password = loginForm.password.value;
-
         const foundUser = usersData.find(user => user.id === username && user.password === password);
-
         if (foundUser) {
             teacherData = foundUser;
             sessionStorage.setItem('teacherData', JSON.stringify(teacherData));
@@ -321,14 +314,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Handle logout
     const handleLogout = () => {
         teacherData = null;
         sessionStorage.removeItem('teacherData');
         showLogin();
     };
 
-    // Show login screen
     const showLogin = () => {
         appSection.classList.add('hidden');
         loginSection.classList.remove('hidden');
@@ -336,122 +327,104 @@ document.addEventListener('DOMContentLoaded', () => {
         loginError.classList.add('hidden');
     };
 
-    // Show main application
     const showApp = () => {
         loginSection.classList.add('hidden');
         appSection.classList.remove('hidden');
         populateForm();
     };
 
-    // Populate form with data
     const populateForm = () => {
-        // Populate teacher name
         teacherNameDisplay.textContent = `Selamat datang, ${teacherData.name}`;
         formTeacherNameInput.value = teacherData.name;
-
-        // Set date
         const formDatePicker = document.getElementById('form-date-picker');
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const dd = String(today.getDate()).padStart(2, '0');
         formDatePicker.value = `${yyyy}-${mm}-${dd}`;
-
-        // Populate dropdowns
         mapelSelect.innerHTML = SUBJECTS.map(subject => `<option value="${subject}">${subject}</option>`).join('');
         jamKeSelect.innerHTML = Array.from({length: 8}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
         sampaiSelect.innerHTML = Array.from({length: 8}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
-
-        // Set default mapel for teacher
         if (teacherData.mapel && SUBJECTS.includes(teacherData.mapel)) {
             mapelSelect.value = teacherData.mapel;
         }
-
-        // Populate student list
-        studentListContainer.innerHTML = ''; // Clear previous list
+        studentListContainer.innerHTML = '';
         STUDENTS.forEach((student, index) => {
             const studentRow = document.createElement('div');
-            studentRow.className = 'flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-white rounded-lg border';
+            studentRow.className = 'flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border space-y-2 sm:space-y-0 sm:space-x-4';
             studentRow.dataset.studentName = student;
 
             const nameWrapper = document.createElement('div');
-            nameWrapper.className = 'flex items-center mb-2 sm:mb-0 flex-1';
-
+            nameWrapper.className = 'flex items-center flex-1 w-full sm:w-auto';
             const numberEl = document.createElement('span');
             numberEl.className = 'w-8 text-gray-500 font-medium';
             numberEl.textContent = `${index + 1}.`;
-
             const studentNameEl = document.createElement('p');
             studentNameEl.className = 'font-medium text-gray-800';
             studentNameEl.textContent = student;
-            
             nameWrapper.appendChild(numberEl);
             nameWrapper.appendChild(studentNameEl);
 
             const attendanceButtons = document.createElement('div');
-            attendanceButtons.className = 'flex items-center space-x-1 sm:w-48 justify-start sm:justify-center self-end sm:self-center';
-
+            attendanceButtons.className = 'flex items-center space-x-1 w-48 shrink-0 justify-start sm:justify-center self-end sm:self-center';
             Object.keys(ATTENDANCE_STATUS).forEach(status => {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.dataset.status = status;
                 button.textContent = status;
-                // Default to 'Hadir'
                 const isActive = status === 'H';
                 button.className = `attendance-btn w-8 h-8 rounded-md font-bold text-sm ${isActive ? ATTENDANCE_STATUS[status].bgColor + ' active' : 'bg-white'}`;
                 attendanceButtons.appendChild(button);
             });
 
+            const noteInput = document.createElement('input');
+            noteInput.type = 'text';
+            noteInput.placeholder = 'Catatan...';
+            noteInput.className = 'w-full sm:w-56 text-sm border-gray-300 rounded-md shadow-sm focus:border-slate-500 focus:ring-slate-500 font-content p-2 shrink-0';
+            noteInput.dataset.noteFor = student;
+
             studentRow.appendChild(nameWrapper);
             studentRow.appendChild(attendanceButtons);
+            studentRow.appendChild(noteInput);
             studentListContainer.appendChild(studentRow);
         });
     };
 
-    // Handle clicking attendance buttons
     const handleAttendanceClick = (e) => {
         if (e.target.classList.contains('attendance-btn')) {
             const clickedBtn = e.target;
             const parent = clickedBtn.parentElement;
-            
-            // Remove active class from siblings
             parent.querySelectorAll('.attendance-btn').forEach(btn => {
                 btn.classList.remove('active', ...Object.values(ATTENDANCE_STATUS).map(s => s.bgColor));
                 btn.classList.add('bg-white');
             });
-            
-            // Add active class to clicked button
             const status = clickedBtn.dataset.status;
             clickedBtn.classList.add('active', ATTENDANCE_STATUS[status].bgColor);
             clickedBtn.classList.remove('bg-white');
         }
     };
 
-    // Handle form submission
     const handleFormSubmit = async (e) => {
         e.preventDefault();
+        
         setLoading(true);
 
-        // Membuat objek 'attendance' sesuai struktur yang diharapkan skrip
         const attendancePayload = {};
         document.querySelectorAll('[data-student-name]').forEach(row => {
             const studentName = row.dataset.studentName;
             const activeBtn = row.querySelector('.attendance-btn.active');
             const status = activeBtn ? activeBtn.dataset.status : 'H';
-            attendancePayload[studentName] = status;
+            const noteInput = row.querySelector(`[data-note-for="${studentName}"]`);
+            const note = noteInput ? noteInput.value : '';
+            attendancePayload[studentName] = { status, note };
         });
         
-        // Membuat objek payload utama dalam format JSON
         const formDatePicker = document.getElementById('form-date-picker');
-        const dateValue = formDatePicker.value; // Format: "YYYY-MM-DD"
-        const [year, month, day] = dateValue.split('-');
-        const formattedDateForSheet = `${day}/${month}/${year}`; // Format: "DD/MM/YYYY"
-
-        // Membuat timestamp untuk WIB (UTC+7)
+        const [year, month, day] = formDatePicker.value.split('-');
+        const formattedDateForSheet = `${day}/${month}/${year}`;
         const now = new Date();
-        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000); // Waktu UTC dalam milidetik
-        const wibTime = new Date(utcTime + (3600000 * 7)); // Tambah 7 jam untuk WIB
-        
+        const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+        const wibTime = new Date(utcTime + (3600000 * 7));
         const dayWIB = String(wibTime.getDate()).padStart(2, '0');
         const monthWIB = String(wibTime.getMonth() + 1).padStart(2, '0');
         const yearWIB = wibTime.getFullYear();
@@ -472,20 +445,12 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         try {
-            // Mengirim data sebagai string JSON. Google Apps Script akan membacanya
-            // dari properti e.postData.contents.
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify(dataToSend),
-                headers: {
-                    // Mengirim sebagai text/plain untuk menghindari permintaan preflight CORS (OPTIONS)
-                    // yang seringkali tidak ditangani oleh skrip Google Apps sederhana.
-                    'Content-Type': 'text/plain;charset=utf-8',
-                }
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
             });
-
             const result = await response.json();
-
             if (result && result.success) {
                 showSuccessModal();
                 attendanceForm.reset(); 
@@ -501,20 +466,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Set loading state for submit button
     const setLoading = (isLoading) => {
-        if (isLoading) {
-            submitBtn.disabled = true;
-            submitBtnText.classList.add('hidden');
-            submitBtnSpinner.classList.remove('hidden');
-        } else {
-            submitBtn.disabled = false;
-            submitBtnText.classList.remove('hidden');
-            submitBtnSpinner.classList.add('hidden');
-        }
+        submitBtn.disabled = isLoading;
+        submitBtnText.classList.toggle('hidden', isLoading);
+        submitBtnSpinner.classList.toggle('hidden', !isLoading);
     };
 
-    // Show success notification modal and pie chart
     const showSuccessModal = () => {
         const stats = { H: 0, S: 0, I: 0, A: 0, T: 0, P: 0 };
         document.querySelectorAll('[data-student-name]').forEach(row => {
@@ -523,15 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
             stats[status]++;
         });
 
-        const chartData = {
-            labels: [],
-            datasets: [{
-                data: [],
-                backgroundColor: [],
-                hoverOffset: 4
-            }]
-        };
-
+        const chartData = { labels: [], datasets: [{ data: [], backgroundColor: [], hoverOffset: 4 }] };
         for (const [status, count] of Object.entries(stats)) {
             if (count > 0) {
                 chartData.labels.push(`${ATTENDANCE_STATUS[status].label} (${count})`);
@@ -539,75 +488,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 chartData.datasets[0].backgroundColor.push(ATTENDANCE_STATUS[status].color);
             }
         }
-
-        if (attendanceChart) {
-            attendanceChart.destroy();
-        }
-
+        if (attendanceChart) { attendanceChart.destroy(); }
         attendanceChart = new Chart(chartCanvas, {
             type: 'pie',
             data: chartData,
             options: {
                 responsive: true,
                 plugins: {
-                    legend: {
-                        position: 'top',
-                    },
-                    tooltip: {
-                        // Tooltip still shows the full label on hover
-                        callbacks: {
-                            label: function(context) {
-                                return context.label;
-                            }
-                        }
-                    },
-                    // Configuration for the datalabels plugin to show percentages
+                    legend: { position: 'top' },
+                    tooltip: { callbacks: { label: (context) => context.label } },
                     datalabels: {
                         formatter: (value, ctx) => {
                             const total = ctx.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
-                            return percentage;
+                            return total > 0 ? ((value / total) * 100).toFixed(1) + '%' : '0%';
                         },
-                        color: '#fff', // Color of the percentage text
-                        font: {
-                            weight: 'bold',
-                            family: "'Oswald', sans-serif" // Match the content font
-                        }
+                        color: '#fff',
+                        font: { weight: 'bold', family: "'Oswald', sans-serif" }
                     }
                 }
             },
         });
-
         successModal.classList.remove('hidden');
     };
 
-    // Hide success modal
-    const hideSuccessModal = () => {
-        successModal.classList.add('hidden');
-    };
-
-    // --- EVENT LISTENERS ---
+    const hideSuccessModal = () => { successModal.classList.add('hidden'); };
     loginForm.addEventListener('submit', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
     studentListContainer.addEventListener('click', handleAttendanceClick);
     attendanceForm.addEventListener('submit', handleFormSubmit);
     closeModalBtn.addEventListener('click', hideSuccessModal);
-
     togglePasswordBtn.addEventListener('click', () => {
         const isPassword = passwordInput.type === 'password';
         passwordInput.type = isPassword ? 'text' : 'password';
-
         eyeIcon.classList.toggle('hidden');
         eyeSlashIcon.classList.toggle('hidden');
     });
-
-    // --- INITIALIZATION ---
     initApp();
 });
 </script>
 
 </body>
 </html>
-
-
 
